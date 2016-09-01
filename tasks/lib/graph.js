@@ -110,7 +110,9 @@ exports.init = function (grunt) {
                 if (node.dependencies && node.dependencies.length) {
                     node.dependencies.forEach(function (dep) {
                         grunt.verbose.writeln('Resolve dependency ' + dep);
-                        resolveDependencies(resolveName(dep), resolvedNodes);
+                        var a = resolveName(dep);
+                        if(a[0] != node)
+                                                resolveDependencies(a, resolvedNodes);
                     });
                 }
                 if (!node.path) {

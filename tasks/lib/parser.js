@@ -22,7 +22,9 @@ exports.init = function (grunt, opts) {
         DEFINE_RX = /@define\s+([\w.]+)/gm,
 
         EXT_ALTERNATE_CLASS_NAME_RX = /alternateClassName:\s*\[?\s*((['"]([\w.*]+)['"]\s*,?\s*)+)\s*\]?,?/m,
+        EXT_ALIAS_CLASS_NAME_RX = /alias:\s*\[?\s*((['"]([\w.*]+)['"]\s*,?\s*)+)\s*\]?,?/m,
         ALTERNATE_CLASS_NAME_RX = /@alternateClassName\s+([\w.]+)/gm,
+        ALIAS_CLASS_NAME_RX = /@alias\s+([\w.]+)/gm,
 
         AT_REQUIRE_RX = /@require\s+([\w.\/\-]+)/,
 
@@ -135,6 +137,12 @@ exports.init = function (grunt, opts) {
         if (m && m[1]) {
             addClassNames(output.classNames, m[1].split(','));
         }
+         m = EXT_ALIAS_CLASS_NAME_RX.exec(node.source());
+        if (m && m[1]) {
+            addClassNames(output.classNames, m[1].split(','));
+
+
+        }  
 
         parseClassDefBody(node, output);
     }
@@ -255,7 +263,9 @@ exports.init = function (grunt, opts) {
         // Parse `controller: ...` annotation (for deftjs)
         m = getClassDefValue(node, 'controller', true);
         if (m) {
-            addClassNames(output.dependencies, extrapolateClassNames('controller', m, output.definedName));
+            m = ['controller.'+m[0]];
+
+            addClassNames(output.dependencies,  m);
         }
 
         // Parse `models: [...]` and `model: '...'` annotations
@@ -302,6 +312,13 @@ exports.init = function (grunt, opts) {
         if (typeof clsNameRaw === 'string' && clsNameRaw) {
             return getClassName(clsNameRaw);
         } else {
+            //return 'Ext';
+            if('BinaryExpression' == node.expression.arguments[0].type)
+            {
+                 grunt.log.error('Cannot determine class name in define call in "' + _currentFilePath + '" (found BinaryExpression).');
+                 return 'Ext';
+
+            }else
             grunt.fail.warn('Cannot determine class name in define call in "' + _currentFilePath + '".');
         }
     }
@@ -330,7 +347,13 @@ exports.init = function (grunt, opts) {
                 if (m[1]) {
                     addClassNames(output.classNames, m[1]);
                 }
+            } 
+             while (m = ALIAS_CLASS_NAME_RX.exec(node.value)) {
+                if (m[1]) {
+                     addClassNames(output.classNames, m[1]);
+                }
             }
+
         }
     }
 
@@ -368,7 +391,7 @@ exports.init = function (grunt, opts) {
 
         baseNames = Array.isArray(baseNms) ? baseNms : [baseNms];
         classNames = [];
-
+ 
         baseNames.forEach(function (n) {
             var name = trim(n).replace(/'|"/g, ''),
                 clsName;
